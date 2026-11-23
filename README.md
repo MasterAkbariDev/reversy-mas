@@ -4,7 +4,13 @@ A Python Reversi game and multi-agent system for a university demonstration. Fiv
 
 ![Cooperative match showing the board, score, and agent proposals](docs/demo.png)
 
-## Run the demo
+## Desktop app (Windows)
+
+Install Python 3.11 or later with Tkinter, then double-click `Run REVERSY MAS.bat`. The game opens in its own window. Choose a mode and opponent, then select **New game**. In human mode, click a highlighted square; the AI replies automatically. In agent modes, use **Start / Pause** or **Step**. The latest decision and team proposals appear beside the board.
+
+Alternatively run `py -3 -m reversy_mas.ui.desktop` from the project folder. The game uses the Python standard library; no server or browser is needed.
+
+## Optional browser demo
 
 Install Python 3.11 or later and open a terminal in the project folder. The game and browser interface use the Python standard library.
 
@@ -57,3 +63,4 @@ py -3 -m reversy_mas.tournament --seed 42 --openings 5 --depth 2 --output experi
 On macOS or Linux, use `python3 -m venv .venv` and `.venv/bin/python` for installation and tests. Use `python3` for the tournament command.
 
 Opening configurations and match outcomes are deterministic for the same Python runtime and parameters. Time measurements vary by machine and run. The five-opening experiment runs 100 games. [Method and findings](docs/experiments.md) · [Raw match results](docs/experiment-results.json)
+
