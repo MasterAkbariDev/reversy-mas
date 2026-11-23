@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REVERSY MAS</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">◐</span> REVERSY <span>MAS</span></div>
+    <nav aria-label="Workspace">
+      <button id="show-match" class="tab active" aria-pressed="true">Match</button>
+      <button id="show-tournament" class="tab" aria-pressed="false">Tournament</button>
+    </nav>
+  </header>
+  <main>
+    <section id="match-page" class="match-layout">
+      <section class="panel arena" aria-label="Reversi match">
+        <div class="scoreboard">
+          <div><i class="disc black"></i><span class="player"><small>Black</small><strong id="black-player"></strong></span><b id="black-score">2</b></div>
+          <div><i class="disc white"></i><span class="player"><small>White</small><strong id="white-player"></strong></span><b id="white-score">2</b></div>
+        </div>
+        <div class="board-frame">
+          <div aria-hidden="true" class="columns"> <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div>
+          <div aria-hidden="true" class="rows"> <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+          <div id="board" class="board" role="group" aria-label="Reversi board"></div>
+        </div>
+        <p id="status" role="status">Loading match…</p>
+      </section>
+      <aside class="sidebar">
+        <section class="panel">
+          <h1>Match setup</h1>
+          <form id="settings" class="fields">
+            <label class="wide">Mode<select id="mode">
+              <option value="ai">AI vs. AI</option><option value="human">Human vs. AI</option>
+              <option value="team" selected>Cooperative team</option>
+            </select></label>
+            <label>Black<select id="black-agent"></select></label>
+            <label>White<select id="white-agent"></select></label>
+            <label>Search depth<input id="depth" type="number" min="1" max="5" value="2" required></label>
+            <button type="submit" id="reset">Reset match</button>
+          </form>
+          <div class="actions">
+            <button id="start" class="primary">Start</button><button id="pause">Pause</button>
+            <button id="step">Step</button><button id="pass" hidden>Pass</button>
+          </div>
+          <p id="match-error" class="error" role="alert" hidden></p>
+        </section>
+        <section class="panel inspect">
+          <div class="inspect-heading"><h2>Decision log</h2><span class="muted" id="history-count">0 turns</span></div>
+          <label for="history-select">Inspect a turn</label>
+          <select id="history-select"></select>
+          <div id="inspector"><p class="muted">Step through a turn to see how the agents decide.</p></div>
+          <details class="history"><summary>Move history</summary><ol id="moves"></ol></details>
+        </section>
+      </aside>
+    </section>
+    <section id="tournament-page" hidden>
+      <section class="panel tournament-setup">
+        <h1>Tournament</h1>
+        <p class="muted">All five players face each other from the same seeded openings, with colors swapped.</p>
+        <form id="tournament-form" class="fields">
+          <label>Random seed<input id="seed" type="number" min="-2147483648" max="2147483647" value="42" required></label>
+          <label>Paired openings<input id="openings" type="number" min="1" max="10" value="2" required></label>
+          <label>Search depth<input id="tournament-depth" type="number" min="1" max="3" value="2" required></label>
+          <button id="run-tournament" class="primary" type="submit">Run tournament</button>
+        </form>
+        <p id="tournament-status" role="status"></p>
+      </section>
+      <div id="tournament-results"></div>
+    </section>
+  </main>
+</body>
+</html>
