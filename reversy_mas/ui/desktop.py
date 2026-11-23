@@ -1,5 +1,7 @@
 """Native, audience-friendly desktop interface for REVERSY MAS."""
+import math
 import random
+import time
 import tkinter as tk
 from tkinter import ttk
 
@@ -7,15 +9,57 @@ from ..agents import NAMES, create_agent
 from ..environment import BLACK, WHITE, flips, notation
 from ..match import Match
 
-BG = '#0b1717'
-PANEL = '#142626'
-CARD = '#1b3330'
-MUTED = '#9db8ae'
-TEXT = '#eff8f2'
-MINT = '#7de4af'
-GOLD = '#f4cb77'
+BG = '#050914'
+PANEL = '#0c1526'
+CARD = '#142338'
+MUTED = '#899eb4'
+TEXT = '#eaf7ff'
+MINT = '#47e8f2'
+GOLD = '#f7ca66'
 CELL = 64
 BOARD = CELL * 8
+
+
+class ArenaButton(tk.Canvas):
+    """A rounded native canvas button with hover and keyboard focus."""
+    def __init__(self, parent, text, command, primary=False, variable=None):
+        super().__init__(parent, width=110, height=44, bg=parent['bg'],
+                         highlightthickness=0, bd=0, cursor='hand2', takefocus=True)
+        self.text, self.variable, self.command, self.primary = text, variable, command, primary
+        self.hover = False
+        self.bind('<Configure>', lambda e: self.paint())
+        self.bind('<Enter>', lambda e: self.set_hover(True))
+        self.bind('<Leave>', lambda e: self.set_hover(False))
+        self.bind('<Button-1>', lambda e: self.focus_set())
+        self.bind('<ButtonRelease-1>', self.activate)
+        self.bind('<Return>', self.activate)
+        self.bind('<space>', self.activate)
+        self.bind('<FocusIn>', lambda e: self.paint())
+        self.bind('<FocusOut>', lambda e: self.paint())
+        if variable is not None:
+            variable.trace_add('write', lambda *args: self.paint())
+
+    def set_hover(self, value):
+        self.hover = value
+        self.paint()
+
+    def activate(self, event):
+        if event.type == tk.EventType.ButtonRelease and not (0 <= event.x < self.winfo_width() and 0 <= event.y < self.winfo_height()):
+            return
+        self.command()
+
+    def paint(self):
+        self.delete('all')
+        w, h, r = self.winfo_width(), self.winfo_height(), 11
+        fill = ('#8cfaff' if self.hover else '#47e8f2') if self.primary else ('#284462' if self.hover else '#172b42')
+        edge = '#b2fbff' if self.focus_get() == self else ('#43aab9' if not self.primary else '#8effff')
+        self.create_polygon(2+r, 2, w-2-r, 2, w-2, 2, w-2, 2+r,
+                            w-2, h-2-r, w-2, h-2, w-2-r, h-2,
+                            2+r, h-2, 2, h-2, 2, h-2-r, 2, 2+r, 2, 2,
+                            smooth=True, splinesteps=24, fill=fill, outline=edge, width=1)
+        self.create_text(w/2, h/2, text=self.variable.get() if self.variable else self.text,
+                         fill='#06121c' if self.primary else TEXT,
+                         font=('Segoe UI', 10, 'bold'))
 
 
 class DesktopApp:
@@ -60,12 +104,7 @@ class DesktopApp:
                         fg=color, bg=bg or parent['bg'], **kw)
 
     def button(self, parent, text=None, command=None, primary=False, variable=None):
-        opts = {'textvariable': variable} if variable else {'text': text}
-        return tk.Button(parent, command=command, **opts, relief='flat', bd=0,
-                         bg=MINT if primary else CARD, fg=BG if primary else TEXT,
-                         activebackground='#a4f4ca' if primary else '#31564c',
-                         activeforeground=BG if primary else TEXT, cursor='hand2',
-                         font=('Segoe UI', 10, 'bold'), padx=14, pady=9)
+        return ArenaButton(parent, text, command, primary, variable)
 
     def combo(self, parent, variable, values):
         return ttk.Combobox(parent, textvariable=variable, values=values,
@@ -86,16 +125,16 @@ class DesktopApp:
         left.pack(side='left', anchor='n')
         scores = tk.Frame(left, bg=PANEL, padx=16, pady=10)
         scores.pack(fill='x', pady=(0, 10))
-        for side, name, score, color in [('BLACK', self.black_name, self.black_score, '#a3c7b6'), ('WHITE', self.white_name, self.white_score, '#f3e5bb')]:
+        for side, name, score, color in [('BLACK / MAGENTA', self.black_name, self.black_score, '#ff7fbd'), ('WHITE / CYAN', self.white_name, self.white_score, '#47e8f2')]:
             block = tk.Frame(scores, bg=PANEL)
             block.pack(side='left', expand=True, fill='x')
             self.label(block, side, 9, color=color, bold=True).pack(anchor='w')
             self.label(block, size=11, bold=True, textvariable=name).pack(anchor='w')
             self.label(block, size=25, bold=True, textvariable=score).pack(anchor='w')
         self.label(scores, size=9, color=MUTED, bold=True, textvariable=self.move_count).pack(side='right', anchor='n')
-        board_frame = tk.Frame(left, bg='#264f42', padx=3, pady=3)
+        board_frame = tk.Frame(left, bg='#276979', padx=4, pady=4)
         board_frame.pack()
-        self.canvas = tk.Canvas(board_frame, width=BOARD, height=BOARD, bg='#225d48', highlightthickness=0)
+        self.canvas = tk.Canvas(board_frame, width=BOARD, height=BOARD, bg='#0a1220', highlightthickness=0)
         self.canvas.pack()
         self.canvas.bind('<Button-1>', self.play_square)
         self.label(left, size=12, color=MINT, bold=True, textvariable=self.status).pack(anchor='w', pady=(12, 0))
@@ -192,17 +231,31 @@ class DesktopApp:
         for i, cell in enumerate(board):
             row, col = divmod(i, 8)
             x, y = col * CELL, row * CELL
-            self.canvas.create_rectangle(x, y, x+CELL, y+CELL, fill='#256c51' if (row+col)%2 else '#28765a', outline='#205b46')
+            self.canvas.create_rectangle(x, y, x+CELL, y+CELL, fill='#101b30' if (row+col)%2 else '#0d182a', outline='#1b3b4b')
             if i == (self.last_move if highlight is None else highlight):
                 self.canvas.create_rectangle(x+3, y+3, x+CELL-3, y+CELL-3, outline=GOLD, width=3)
             if cell:
-                scale = flip_scale if hasattr(self, '_flipped') and i in self._flipped else 1
                 cx, cy = x+CELL/2, y+CELL/2
-                radius = 26
-                self.canvas.create_oval(cx-radius, cy-radius*scale+3, cx+radius, cy+radius*scale+3, fill='#143b2d', outline='')
-                self.canvas.create_oval(cx-radius, cy-radius*scale, cx+radius, cy+radius*scale, fill='#15201d' if cell == BLACK else '#f4f5eb', outline='#445e52' if cell == BLACK else '#cbd8ca', width=2)
+                scale = getattr(self, '_scales', {}).get(i, 1.0)
+                size = getattr(self, '_sizes', {}).get(i, 1.0)
+                radius = 25 * size
+                # Layered rings give the discs the original game's luminous, dimensional finish.
+                colors = (('#5c0034', '#b80864', '#f32991', '#ff9bcf') if cell == BLACK
+                          else ('#004653', '#008899', '#00e4ee', '#cbffff'))
+                self.canvas.create_oval(cx-radius-3, cy-radius*scale-3, cx+radius+3, cy+radius*scale+3,
+                                        fill='#35152d' if cell == BLACK else '#0c3c4a', outline='')
+                self.canvas.create_oval(cx-radius, cy-radius*scale, cx+radius, cy+radius*scale,
+                                        fill=colors[0], outline=colors[1], width=2)
+                self.canvas.create_oval(cx-radius*.86, cy-radius*.88*scale, cx+radius*.76, cy+radius*.74*scale,
+                                        fill=colors[1], outline='')
+                self.canvas.create_oval(cx-radius*.72, cy-radius*.78*scale, cx+radius*.51, cy+radius*.48*scale,
+                                        fill=colors[2], outline='')
+                if scale > .35:
+                    self.canvas.create_oval(cx-radius*.47, cy-radius*.55*scale, cx-radius*.09, cy-radius*.22*scale,
+                                            fill=colors[3], outline='')
             elif i in legal:
-                self.canvas.create_oval(x+27, y+27, x+37, y+37, fill='#b8e8a2', outline='')
+                self.canvas.create_oval(x+25, y+25, x+39, y+39, outline='#31838c', width=2)
+                self.canvas.create_oval(x+29, y+29, x+35, y+35, fill=MINT, outline='')
         self.black_score.set(str(p.scores[0]))
         self.white_score.set(str(p.scores[1]))
         self.move_count.set(f'MOVE {len(self.match.history):02d}')
@@ -240,22 +293,39 @@ class DesktopApp:
                 text += '\n\nADAPTATION\n' + '; '.join(f'{a.feature}: {a.previous_weight:.1f} → {a.new_weight:.1f}' for a in turn.adaptations)
         self.detail.set(text)
         self.animating = True
-        self._flipped = set(flips(outcome.before.board, outcome.before.turn, outcome.move)) if outcome.move is not None else set()
-        def frame(n):
-            if n < 6 and outcome.move is not None:
-                board = list(outcome.before.board if n < 3 else outcome.after.board)
-                board[outcome.move] = outcome.before.turn
-                self.draw(board, outcome.move, max(.08, abs(3-n)/3))
-                self.schedule(65, lambda: frame(n+1))
-            else:
+        flipped = tuple(flips(outcome.before.board, outcome.before.turn, outcome.move)) if outcome.move is not None else ()
+        # Match the original's bounce and staggered 0.42-second disc flips.
+        started = time.perf_counter()
+        duration = .42
+        stagger = .035
+        total = .18 + duration + max(0, len(flipped)-1) * stagger
+        def frame():
+            elapsed = time.perf_counter() - started
+            if outcome.move is None or elapsed >= total:
                 self.animating = False
-                self._flipped = set()
+                self._scales, self._sizes = {}, {}
                 self.draw()
                 if self.running:
                     self.schedule({'Slow': 1300, 'Normal': 650, 'Fast': 180}[self.speed.get()], self.tick)
                 elif auto_human:
                     self.schedule(450, self.auto_reply)
-        frame(0)
+                return
+            board = list(outcome.before.board)
+            # A quick overshoot and settle suggests the original placement bounce.
+            t = min(1.0, elapsed / .28)
+            bounce = 1 - (1-t)**3 + .15 * math.sin(math.pi*t) * (1-t)
+            board[outcome.move] = outcome.before.turn
+            self._sizes = {outcome.move: max(.08, bounce)}
+            self._scales = {}
+            for index, square in enumerate(flipped):
+                progress = max(0.0, min(1.0, (elapsed - .18 - index*stagger) / duration))
+                if progress >= .5:
+                    board[square] = outcome.after.board[square]
+                # Cosine creates the edge-on midpoint of a 3D rotation.
+                self._scales[square] = max(.06, abs(math.cos(math.pi*progress)))
+            self.draw(board, outcome.move)
+            self.schedule(16, frame)
+        frame()
 
     def auto_reply(self):
         p = self.match.position
@@ -298,3 +368,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
